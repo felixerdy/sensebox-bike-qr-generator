@@ -20,6 +20,8 @@ import QRCode from "qrcode";
 import { useEffect, useRef, useState } from "react";
 import ReactToPrint from "react-to-print";
 
+const regex = /senseBox:bike \[([A-Fa-f0-9]+)\]/;
+
 export function QRGeneratorForm() {
   const [text, setText] = useState<string>();
   const [qrCode, setQRCode] = useState("");
@@ -55,6 +57,45 @@ export function QRGeneratorForm() {
     );
   }
 
+  async function handleReadFromSerialClick() {
+    try {
+      const port = await navigator.serial.requestPort({
+        filters: [{ usbVendorId: 1240 }],
+      });
+      console.log(await port.getInfo());
+      await port.open({ baudRate: 115200 });
+      while (port.readable) {
+        const reader = port.readable.getReader();
+        try {
+          while (true) {
+            const { value, done } = await reader.read();
+            if (done) {
+              // |reader| has been canceled.
+              break;
+            }
+            const text = new TextDecoder().decode(value);
+
+            const match = text.match(regex);
+            if (match) {
+              const id = match[1];
+              setText(`senseBox:bike [${id}]`);
+
+              await port.close();
+              await port.forget();
+              break;
+            }
+          }
+        } catch (error) {
+          // Handle |error|...
+        } finally {
+          reader.releaseLock();
+        }
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
   return (
     <Card>
       <CardHeader>
@@ -64,16 +105,22 @@ export function QRGeneratorForm() {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="space-y-2">
-          <Label htmlFor="qr-text">Text</Label>
-          <Input
-            id="qr-text"
-            placeholder="Enter text here"
-            required
-            defaultValue={text}
-            onChange={(e) => setText(e.target.value)}
-            type="text"
-          />
+        <div className="flex items-center flex-col w-full gap-4">
+          <div className="space-y-2 w-full">
+            <Label htmlFor="qr-text">Text</Label>
+            <Input
+              id="qr-text"
+              placeholder="Enter text here"
+              required
+              defaultValue={text}
+              onChange={(e) => setText(e.target.value)}
+              type="text"
+            />
+          </div>
+          <p className="text-sm">or</p>
+          <Button className="w-full" onClick={handleReadFromSerialClick}>
+            Read from Serial
+          </Button>
         </div>
         <div className="space-y-2">
           <Label htmlFor="qr-code">Generated QR Code</Label>
