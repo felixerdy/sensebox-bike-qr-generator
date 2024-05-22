@@ -28,6 +28,31 @@ export function QRGeneratorForm() {
 
   const ref = useRef<HTMLDivElement>(null);
 
+  const svgString = `<svg viewBox="0 0 128 160">
+  <path d="M0,0 L128,0 L128,160 L0,160 Z" fill="#fff" />
+  ${qrCode}
+  <text
+    text-anchor="middle"
+    x="64"
+    y="142"
+    fill="#000"
+    font-size="8"
+    font-weight="600"
+  >
+    ${text?.split(" ")[0]}
+  </text>
+  <text
+    text-anchor="middle"
+    x="64"
+    y="154"
+    fill="#000"
+    font-size="8"
+    font-weight="600"
+  >
+    ${text?.split(" ")[1]}
+  </text>
+</svg>`;
+
   useEffect(resetQRCode, []);
 
   useEffect(() => {
@@ -131,11 +156,10 @@ export function QRGeneratorForm() {
             >
               <img
                 alt="Generated QR Code"
-                className="object-contain w-64 h-64"
-                height="256"
+                className="object-contain w-64 h-64 aspect-square"
                 id="qr-code"
                 style={{
-                  aspectRatio: "256/256",
+                  // aspectRatio: "256/256",
                   objectFit: "cover",
                 }}
                 width="256"
@@ -148,7 +172,7 @@ export function QRGeneratorForm() {
           </div>
         </div>
       </CardContent>
-      <CardFooter>
+      <CardFooter className="gap-2">
         {ref.current && (
           <ReactToPrint
             bodyClass="print-agreement"
@@ -156,6 +180,14 @@ export function QRGeneratorForm() {
             trigger={() => <Button className="w-full">Print QR Code</Button>}
           />
         )}
+        <a
+          href={`data:application/octet-stream;utf8,${encodeURIComponent(
+            svgString
+          )}`}
+          download={`${text}.svg`}
+        >
+          <Button className="w-full">Download as image</Button>
+        </a>
       </CardFooter>
     </Card>
   );
